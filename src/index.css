@@ -1,84 +1,295 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
-}
-
-/* @layer base {
-  * {
-    @apply border-border;
-  }
+/* Test style to verify CSS is loading */
   body {
-    @apply bg-background text-foreground;
+    background-color: #fefefd !important;
+    color: #722b0e !important;
+    font-family: 'Inter', sans-serif !important;
   }
-} */
 
 @layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
   html {
-    @apply text-neutral-800;
+    scroll-behavior: smooth;
+    font-feature-settings: "liga", "kern";
+    text-rendering: optimizeLegibility;
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+  
+  /* Comprehensive iOS Safari logo fixes */
+  img[src*=".svg"], 
+  img[src*=".png"] {
+    /* Prevent color inversion */
+    filter: none !important;
+    -webkit-filter: none !important;
+    
+    /* Fix resolution issues */
+    image-rendering: crisp-edges !important;
+    -webkit-image-rendering: crisp-edges !important;
+    
+    /* Hardware acceleration */
+    -webkit-backface-visibility: hidden !important;
+    -webkit-transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+    transform: translateZ(0) !important;
+    
+    /* Prevent iOS Safari quirks */
+    -webkit-appearance: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    
+    /* Prevent dark mode inversion */
+    color-scheme: light !important;
+    -webkit-color-scheme: light !important;
+    
+    /* Additional rendering fixes */
+    -webkit-perspective: 1000 !important;
+    -webkit-font-smoothing: antialiased !important;
+    will-change: transform !important;
+    opacity: 1 !important;
+  }
+  
+  /* iOS Safari specific media query */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    img[src*=".svg"] {
+      -webkit-transform: translate3d(0, 0, 0) !important;
+      transform: translate3d(0, 0, 0) !important;
+    }
+  }
+  
+  /* Dark mode prevention */
+  @media (prefers-color-scheme: dark) {
+    img[src*=".svg"] {
+      filter: none !important;
+      -webkit-filter: none !important;
+    }
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #722b0e;
+    background-color: #fefefd;
+    width: 100%;
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+  
+  #root {
+    width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Ensure all containers are full-width on mobile */
+  @media (max-width: 639px) {
+    .container-custom {
+      width: 100vw;
+      margin-left: 0;
+      margin-right: 0;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  
+  h1 {
+    font-size: 3rem;
+    line-height: 1.1;
+    font-weight: 700;
+  }
+  
+  h2 {
+    font-size: 2.25rem;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  
+  h3 {
+    font-size: 1.875rem;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+  
+  p {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.7;
+  }
+  
+  .text-xl {
+    line-height: 1.6;
+  }
+  
+  .text-lg {
+    line-height: 1.6;
+  }
+}
 
-  html.dark {
-    @apply text-neutral-50;
-    @apply bg-neutral-800;
+@layer components {
+  .btn-primary {
+    background-color: #6db228;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  .btn-primary:hover {
+    background-color: #5a951f;
+    transform: scale(1.02);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .btn-secondary {
+    background-color: #fefefd;
+    color: #722b0e;
+    font-weight: 600;
+    padding: 0.875rem 2rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    transform: scale(1);
+    border: 2px solid #6db228;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #e8f2e0;
+    border-color: #5a951f;
+    transform: scale(1.02);
+  }
+  
+  .btn-outline {
+    border: 2px solid #6db228;
+    color: #722b0e;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s;
+    transform: scale(1);
+  }
+  
+  .btn-outline:hover {
+    background-color: #16a34a;
+    color: #ffffff;
+    transform: scale(1.05);
+  }
+  
+  .card {
+    background-color: #f5f0e0;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+    transform: translateY(0);
+  }
+  
+  .card:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: translateY(-0.25rem);
+  }
+  
+  .section-padding {
+    padding: 4rem 1rem;
+  }
+  
+  .container-custom {
+    width: 100%;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .container-custom {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-custom {
+      max-width: 80rem;
+    }
+  }
+  
+  .text-gradient {
+    background: linear-gradient(to right, #16a34a, #15803d);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .bg-gradient-beige {
+    background: linear-gradient(135deg, #fefefc 0%, #fdfcf8 50%, #faf8f0 100%);
+  }
+  
+  .bg-gradient-green {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%);
   }
 }
-body{
-  background-color: #f9f1e1;
+
+@layer utilities {
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+  
+  .animation-delay-600 {
+    animation-delay: 600ms;
+  }
+  
+  .animation-delay-800 {
+    animation-delay: 800ms;
+  }
+  
+  .animation-delay-1000 {
+    animation-delay: 1000ms;
+  }
+  
+  .perspective {
+    perspective: 1000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
 }
-@import "react-alice-carousel/lib/alice-carousel.css";

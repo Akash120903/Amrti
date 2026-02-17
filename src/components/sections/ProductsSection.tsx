@@ -1,0 +1,431 @@
+import { motion } from 'framer-motion';
+import { ArrowRight, Star, ShoppingCart, Heart, Play } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAllProducts } from '../../hooks/queries/useProducts';
+import { useWishlist, useToggleWishlist } from '../../hooks/queries/useWishlist';
+import { useAddToCart } from '../../hooks/queries/useCart';
+import type { Product, ProductImage } from '../../context/AppContext';
+import { useNotification } from '../../context/NotificationContext';
+
+// Helper to get the best thumbnail for product cards (prefers images over videos)
+const getProductThumbnail = (product: any): { url: string; isVideo: boolean } => {
+  // If product has images array, find the best thumbnail
+  if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+    const activeMedia = product.images.filter((img: ProductImage) =>
+      img.is_active !== false && img.image_url && img.image_url.trim() !== ''
+    );
+
+    // First, try to find an image (not video)
+    const images = activeMedia.filter((img: ProductImage) => img.image_type !== 'video');
+    if (images.length > 0) {
+      // Sort by is_primary first, then by sort_order
+      const sortedImages = [...images].sort((a: ProductImage, b: ProductImage) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      return { url: sortedImages[0].image_url, isVideo: false };
+    }
+
+    // If only videos exist, use the first video as thumbnail
+    const videos = activeMedia.filter((img: ProductImage) => img.image_type === 'video');
+    if (videos.length > 0) {
+      const sortedVideos = [...videos].sort((a: ProductImage, b: ProductImage) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      return { url: sortedVideos[0].image_url, isVideo: true };
+    }
+  }
+
+  // Fallback to legacy image_url field
+  return { url: product.image_url || '', isVideo: false };
+};
+
+// ProductCard component defined outside to avoid hooks order issues
+interface ProductCardProps {
+  product: any;
+  handleCardClick: (productId: string) => void;
+  handleButtonClick: (e: React.MouseEvent) => void;
+  loadingStates: { [key: string]: boolean };
+  setLoadingStates: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>;
+  showNotification: (notification: any) => void;
+  isProductInWishlist: (productId: string) => boolean;
+  onWishlistToggle: (productId: string, isInWishlist: boolean) => void;
+  onAddToCart: (productId: string) => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  handleCardClick, 
+  handleButtonClick, 
+  loadingStates, 
+  setLoadingStates, 
+  showNotification, 
+  isProductInWishlist, 
+  onWishlistToggle,
+  onAddToCart
+}) => {
+  const discount = Math.round(((product.actual_price - product.price) / product.actual_price) * 100);
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -10 }}
+      transition={{ duration: 0.6 }}
+      className="group cursor-pointer"
+      onClick={() => handleCardClick(product.id)}
+    >
+      <div className="relative overflow-hidden rounded-2xl bg-white backdrop-blur-sm border border-beige-200/50 shadow-elegant hover:shadow-premium transition-all duration-300 h-full flex flex-col">
+        <div className="relative overflow-hidden flex-shrink-0">
+          {(() => {
+            const thumbnail = getProductThumbnail(product);
+            if (thumbnail.isVideo) {
+              // Video thumbnail with play icon overlay
+              return (
+                <div className="relative w-full" style={{ maxHeight: '200px' }}>
+                  <video
+                    src={thumbnail.url}
+                    className="w-full h-auto object-contain group-hover:scale-110 transition-transform duration-300"
+                    style={{ maxHeight: '200px' }}
+                    muted
+                    preload="metadata"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                      <Play className="w-6 h-6 text-green-600 ml-1" fill="currentColor" />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <img
+                src={thumbnail.url}
+                alt={product.name}
+                className="w-full h-auto object-contain group-hover:scale-110 transition-transform duration-300"
+                style={{ maxHeight: '200px' }}
+              />
+            );
+          })()}
+
+          {/* Stock Status Label */}
+          <div className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-semibold ${
+            product.stock === 0 || product.stock_status === "Coming Soon"
+              ? 'bg-orange-500 text-white'
+              : 'bg-green-600 text-white'
+          }`}>
+            {product.stock === 0 || product.stock_status === "Coming Soon"
+              ? product.stock_status || "Out of Stock"
+              : "In Stock"}
+          </div>
+
+          {/* Featured Label for Moringa Products */}
+          {(product.name.toLowerCase().includes('moringa') || product.category.toLowerCase().includes('moringa')) && (
+            <div className="absolute top-3 right-3 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+              Featured
+            </div>
+          )}
+
+          {discount > 0 && (
+            <div className="absolute bottom-3 right-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+              {discount}% OFF
+            </div>
+          )}
+        </div>
+        
+        <div className="p-5 flex flex-col flex-grow">
+          <h3 className="text-lg font-heading font-bold text-russet-900 mb-3 group-hover:text-green-600 transition-colors duration-300">
+            {product.name}
+          </h3>
+          <p className="text-russet-700 text-sm mb-4 leading-relaxed flex-grow">
+            {product.description}
+          </p>
+          
+          <div className="flex items-center space-x-2 mb-3">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${i < Math.floor(product.rating) ? 'text-green-600 fill-current' : 'text-russet-400'}`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-russet-600">({product.review_count})</span>
+          </div>
+
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-green-600">₹{product.price}</span>
+              {product.actual_price !== product.price && (
+                <span className="text-sm text-russet-500 line-through">₹{product.actual_price}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 mt-auto">
+            <button
+              onClick={handleButtonClick}
+              className="flex-1 inline-flex items-center justify-center font-heading font-semibold text-green-600 transition-colors duration-300 group-hover:translate-x-1 text-sm py-2 px-4 border border-green-600 rounded-lg hover:bg-green-600 hover:text-white"
+            >
+              View Details
+              <motion.span
+                className="ml-1"
+                animate={{ x: [0, 3, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                →
+              </motion.span>
+            </button>
+            
+            {/* Add to Cart Button */}
+            {product.stock === 0 || product.stock_status === "coming Soon" ? (
+              <button
+                onClick={handleButtonClick}
+                disabled
+                className="p-2 border border-gray-400 text-gray-400 rounded-lg cursor-not-allowed"
+                title="Coming Soon"
+              >
+                <ShoppingCart className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  handleButtonClick(e);
+                  onAddToCart(product.id);
+                }}
+                disabled={loadingStates[`cart-${product.id}`]}
+                className="p-2 border border-green-600 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Add to Cart"
+              >
+                {loadingStates[`cart-${product.id}`] ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <ShoppingCart className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            
+            {/* Add to Wishlist Button */}
+            <button
+              onClick={(e) => {
+                handleButtonClick(e);
+                onWishlistToggle(product.id, isProductInWishlist(product.id));
+              }}
+              disabled={loadingStates[`wishlist-${product.id}`]}
+              className={`p-2 border rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isProductInWishlist(product.id)
+                  ? 'border-red-600 text-red-600 hover:bg-red-600 hover:text-white'
+                  : 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white'
+              }`}
+              title={isProductInWishlist(product.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            >
+              {loadingStates[`wishlist-${product.id}`] ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Heart className={`w-4 h-4 ${isProductInWishlist(product.id) ? 'fill-current' : ''}`} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ProductsSection = () => {
+  const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
+  const { showNotification } = useNotification();
+  const navigate = useNavigate();
+
+  // Use TanStack Query to fetch products
+  const { data: productsResponse, isLoading, error } = useAllProducts();
+  
+  // Use React Query for wishlist - ALWAYS fetches on mount to sync Redux
+  const { data: wishlistItems = [] } = useWishlist();
+  const toggleWishlistMutation = useToggleWishlist();
+  
+  // Use React Query for cart - instant updates
+  const addToCartMutation = useAddToCart();
+  
+  // Debug: Log wishlist when it changes
+  useEffect(() => {
+    console.log('ProductsSection - Wishlist updated:', wishlistItems);
+  }, [wishlistItems]);
+
+  // Process products data
+  const products = useMemo(() => {
+    if (!productsResponse?.data) return [];
+    
+    // Sort products to show moringa first
+    const sortedProducts = [...productsResponse.data].sort((a, b) => {
+      const aIsMoringa = a.name.toLowerCase().includes('moringa') || a.category.toLowerCase().includes('moringa');
+      const bIsMoringa = b.name.toLowerCase().includes('moringa') || b.category.toLowerCase().includes('moringa');
+      
+      if (aIsMoringa && !bIsMoringa) return -1;
+      if (!aIsMoringa && bIsMoringa) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    
+    // Take only first 4 products for display
+    return sortedProducts.slice(0, 4);
+  }, [productsResponse?.data]);
+
+  // Wishlist is now handled by React Query automatically
+
+  // Helper function to check if product is in wishlist
+  const isProductInWishlist = useCallback((productId: string): boolean => {
+    return wishlistItems.some(item => item.product_id === productId);
+  }, [wishlistItems]);
+
+  // Stable callback for button click prevention
+  const handleButtonClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  // Stable callback for card click
+  const handleCardClick = useCallback((productId: string) => {
+    navigate(`/product/${productId}`);
+  }, [navigate]);
+
+  // Handle wishlist toggle
+  const handleWishlistToggle = useCallback((productId: string, isInWishlist: boolean) => {
+    setLoadingStates(prev => ({ ...prev, [`wishlist-${productId}`]: true }));
+    toggleWishlistMutation.mutate(
+      { productId, isInWishlist },
+      {
+        onSuccess: () => {
+          showNotification({
+            type: 'success',
+            message: isInWishlist 
+              ? 'Product removed from wishlist'
+              : 'Product added to wishlist successfully!'
+          });
+          setLoadingStates(prev => ({ ...prev, [`wishlist-${productId}`]: false }));
+        },
+        onError: () => {
+          showNotification({
+            type: 'error',
+            message: 'Failed to update wishlist'
+          });
+          setLoadingStates(prev => ({ ...prev, [`wishlist-${productId}`]: false }));
+        }
+      }
+    );
+  }, [toggleWishlistMutation, showNotification]);
+  
+  // Handle add to cart - uses React Query mutation for instant updates
+  const handleAddToCart = useCallback((productId: string) => {
+    setLoadingStates(prev => ({ ...prev, [`cart-${productId}`]: true }));
+    addToCartMutation.mutate(
+      { productId, quantity: 1 },
+      {
+        onSuccess: () => {
+          showNotification({
+            type: 'success',
+            message: 'Product added to cart successfully!'
+          });
+          setLoadingStates(prev => ({ ...prev, [`cart-${productId}`]: false }));
+        },
+        onError: () => {
+          showNotification({
+            type: 'error',
+            message: 'Failed to add to cart'
+          });
+          setLoadingStates(prev => ({ ...prev, [`cart-${productId}`]: false }));
+        }
+      }
+    );
+  }, [addToCartMutation, showNotification]);
+
+  // Memoize the product cards to prevent unnecessary re-renders
+  const productCards = useMemo(() => 
+    products.map((product, index) => (
+      <ProductCard 
+        key={product.id} 
+        product={product}
+        handleCardClick={handleCardClick}
+        handleButtonClick={handleButtonClick}
+        loadingStates={loadingStates}
+        setLoadingStates={setLoadingStates}
+        showNotification={showNotification}
+        isProductInWishlist={isProductInWishlist}
+        onWishlistToggle={handleWishlistToggle}
+        onAddToCart={handleAddToCart}
+      />
+    )), [products, handleCardClick, handleButtonClick, loadingStates, showNotification, isProductInWishlist, handleWishlistToggle, handleAddToCart]
+  );
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="container-custom px-4 sm:px-6">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <section className="py-12 sm:py-16 lg:py-20 bg-white">
+        <div className="container-custom px-4 sm:px-6">
+          <div className="text-center">
+            <p className="text-red-600">Failed to load products</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+
+  return (
+         <section className="py-12 sm:py-16 bg-gradient-to-br from-beige-50 to-beige-100">
+      <div className="container-custom">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="mb-12 pl-4 md:pl-24 pr-4 md:pr-16"
+        >
+                     <h2 className="text-4xl font-heading font-bold text-russet-900 mb-6 text-center">
+             Our <span className="text-green-600">Premium Products</span>
+           </h2>
+           <p className="text-xl text-russet-800 max-w-3xl mx-auto font-medium text-left">
+            Discover our carefully sourced natural powders that bring the power of traditional wisdom to modern wellness
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {productCards}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center"
+        >
+          <Link
+            to="/products"
+                            className="inline-flex items-center space-x-2 px-10 py-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full shadow-elegant hover:shadow-premium transition-all duration-300"
+          >
+            <span>View All Products</span>
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
+
+export default ProductsSection; 
